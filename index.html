@@ -1,0 +1,477 @@
+<!DOCTYPE html>
+<html lang="my">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>ကိုယ်ပိုင်ပို့ — ဖုန်းချင်း ဖိုင်ပို့ (Own Server)</title>
+<style>
+:root{--bg:#0b1020;--card:#151b31;--card2:#1c2440;--line:#2a3357;--txt:#eef1ff;--dim:#9aa5c7;--acc:#ffb020;--acc2:#22c55e;--bad:#f87171;--radius:16px}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--txt);font-family:"Segoe UI",system-ui,sans-serif;padding:14px;max-width:560px;margin:0 auto}
+h1{font-size:21px;text-align:center;margin:8px 0 2px}
+.sub{text-align:center;color:var(--dim);font-size:13px;margin-bottom:12px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:14px;margin-bottom:12px}
+.card h2{font-size:15px;margin-bottom:10px}
+.status{display:flex;align-items:center;gap:8px;font-size:14px}
+.dot{width:12px;height:12px;border-radius:50%;background:#64748b;flex:none}
+.dot.on{background:var(--acc2);box-shadow:0 0 10px var(--acc2)}
+.dot.busy{background:var(--acc);box-shadow:0 0 10px var(--acc)}
+button{background:var(--card2);color:var(--txt);border:1px solid var(--line);border-radius:12px;padding:11px 12px;font-size:14px;cursor:pointer;width:100%}
+button.primary{background:var(--acc);color:#1a1200;font-weight:700;border:none}
+button.green{background:var(--acc2);color:#04150a;font-weight:700;border:none}
+button:disabled{opacity:.45;cursor:not-allowed}
+button:active{transform:scale(.98)}
+.row{display:flex;gap:8px}.row>*{flex:1}
+input[type=text],textarea{width:100%;background:#0d1328;color:var(--txt);border:1px solid var(--line);border-radius:10px;padding:10px;font-size:14px;margin-bottom:8px}
+textarea{min-height:74px;resize:vertical;font-size:12px}
+.small{font-size:12px;color:var(--dim);line-height:1.55}
+.warn{background:#3a2a10;border:1px solid #7a5a17;color:#ffd88a;border-radius:10px;padding:9px 11px;font-size:12.5px;margin-bottom:12px;line-height:1.55}
+.bigcode{font-size:38px;font-weight:800;letter-spacing:8px;text-align:center;color:var(--acc);padding:8px 0}
+details{margin-bottom:12px}
+summary{cursor:pointer;font-size:14px;padding:4px 0}
+.tabs{display:flex;gap:6px;margin-bottom:10px}
+.tabs button{padding:9px 4px;font-size:13px}
+.tabs button.sel{background:var(--acc);color:#1a1200;font-weight:700;border:none}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.pick{background:var(--card2);border:1px solid var(--line);border-radius:12px;padding:13px 8px;text-align:center;font-size:14px;cursor:pointer}
+.pick b{display:block;font-size:20px;margin-bottom:3px}
+.pick span{color:var(--dim);font-size:12px}
+.fitem{background:var(--card2);border:1px solid var(--line);border-radius:10px;padding:9px 11px;margin-bottom:7px;font-size:13px}
+.fitem .nm{word-break:break-all}
+.bar{height:8px;background:#0d1328;border-radius:99px;overflow:hidden;margin-top:6px}
+.bar>i{display:block;height:100%;background:var(--acc2);width:0%;transition:width .15s}
+.bar.send>i{background:var(--acc)}
+a.dl{color:var(--acc);font-weight:700;text-decoration:none}
+#qrBox{display:flex;justify-content:center;padding:8px;background:#fff;border-radius:12px;margin:8px 0}
+#qrBox table{border-collapse:collapse}
+video#cam{width:100%;border-radius:12px;background:#000;display:none}
+label.chk{display:flex;gap:8px;align-items:flex-start;font-size:13px;margin:7px 0;line-height:1.5}
+label.chk input{margin-top:3px;width:17px;height:17px;flex:none}
+.hide{display:none!important}
+.log{font-size:12px;color:var(--dim);max-height:110px;overflow:auto;white-space:pre-wrap;line-height:1.6}
+</style>
+</head>
+<body>
+<h1>📤 ကိုယ်ပိုင်ပို့</h1>
+<p class="sub">ဖုန်းချင်း ဖိုင်ပို့ — ဖိုင်က Server ထဲ မဝင်ဘဲ ဖုန်း ၂ လုံး တိုက်ရိုက်သွားသည်<br>Server က ချိတ်ဆက်မှု လက်ဆွဲနှုတ်ဆက်ရန်သာ (Signaling)</p>
+
+<div class="warn">⚠️ ဒီ page ကို <b>HTTPS link</b> (GitHub Pages / Cloudflare Pages) ကနေ ဖွင့်မှ Camera နဲ့ ချိတ်ဆက်မှု အလုပ်လုပ်ပါမည်။ ဖိုင်ကို တိုက်ရိုက်ဖွင့်ရင် မရပါ။</div>
+
+<div class="card">
+  <div class="status"><div class="dot" id="dot"></div><div id="statusTxt">⚪ မချိတ်ရသေးပါ</div></div>
+  <p class="small" style="margin-top:8px">💡 <b>နည်း ၁ (QR)</b> — Internet မလိုပါ။ ဖုန်း ၂ လုံး Hotspot/Wi‑Fi တစ်ခုတည်းမှာ ရှိရပါမည်။<br>💡 <b>နည်း ၂ (Code)</b> — ဖုန်းတွေ ဝေးနေလည်း ရသည်။ ချောစုရဲ့ ကိုယ်ပိုင် Signaling Server (Apps Script သို့မဟုတ် Cloudflare Worker) လိုပါသည် — Setup ကို page အောက်ဆုံးမှာ ကြည့်ပါ။</p>
+</div>
+
+<div class="card">
+  <h2>🔗 ချိတ်ဆက်ရန်</h2>
+  <div class="tabs">
+    <button id="tabQr" class="sel">📷 QR နည်း (Offline)</button>
+    <button id="tabCode">🔢 Code နည်း (Online)</button>
+  </div>
+
+  <!-- QR MODE -->
+  <div id="paneQr">
+    <div class="row">
+      <button class="primary" id="btnQrHost">① ပို့မယ့်ဖုန်း — Code ထုတ်မည်</button>
+      <button id="btnQrGuest">② လက်ခံမယ့်ဖုန်း — Scan ဖတ်မည်</button>
+    </div>
+    <div id="qrHostBox" class="hide">
+      <p class="small" style="margin-top:10px">ဒီ QR ကို တစ်ဖက်ဖုန်းနဲ့ Scan ဖတ်ခိုင်းပါ။ QR ကြီးလွန်းလို့ ဖတ်မရရင် အောက်က စာသားကို Copy ကူးပြီး တစ်ဖက်ဖုန်းမှာ Paste လုပ်ပါ။</p>
+      <div id="qrBox"></div>
+      <textarea id="offerText" readonly></textarea>
+      <button id="btnCopyOffer">📋 Offer စာသား Copy ကူးမည်</button>
+      <p class="small" style="margin-top:10px">တစ်ဖက်ဖုန်းက ပြန်ပေးတဲ့ <b>Answer</b> ကို ဒီမှာ Paste လုပ်ပြီး ချိတ်ပါ —</p>
+      <textarea id="answerText" placeholder="Answer စာသားကို ဒီမှာ Paste လုပ်ပါ"></textarea>
+      <div class="row">
+        <button id="btnScanAnswer">📷 Answer QR Scan ဖတ်မည်</button>
+        <button class="green" id="btnApplyAnswer">✅ Answer ထည့်ပြီး ချိတ်မည်</button>
+      </div>
+    </div>
+    <div id="qrGuestBox" class="hide">
+      <p class="small" style="margin-top:10px">ပို့မယ့်ဖုန်းရဲ့ Offer QR ကို Scan ဖတ်ပါ (သို့) Offer စာသားကို Paste လုပ်ပါ။</p>
+      <div class="row">
+        <button class="primary" id="btnScanOffer">📷 Offer QR Scan ဖတ်မည်</button>
+      </div>
+      <textarea id="offerInText" placeholder="Offer စာသားကို ဒီမှာ Paste လုပ်နိုင်ပါသည်" style="margin-top:8px"></textarea>
+      <button id="btnUseOfferText">စာသားနဲ့ ဆက်လုပ်မည်</button>
+      <div id="guestAnswerBox" class="hide">
+        <p class="small" style="margin-top:10px">ဒီ Answer QR / စာသားကို ပို့မယ့်ဖုန်းဆီ ပြန်ပေးပါ။</p>
+        <div id="qrBox2"></div>
+        <textarea id="guestAnswerText" readonly></textarea>
+        <button id="btnCopyAnswer">📋 Answer စာသား Copy ကူးမည်</button>
+      </div>
+    </div>
+    <video id="cam" playsinline muted></video>
+    <button id="btnStopCam" class="hide" style="margin-top:8px">📷 Camera ပိတ်မည်</button>
+  </div>
+
+  <!-- CODE MODE -->
+  <div id="paneCode" class="hide">
+    <div id="codeCfgWarn" class="small" style="color:var(--bad);margin-bottom:8px"></div>
+    <div class="row">
+      <button class="primary" id="btnCodeHost">① ပို့မယ့်ဖုန်း — Code ထုတ်မည်</button>
+    </div>
+    <div id="hostCodeBox" class="hide">
+      <p class="small" style="text-align:center;margin-top:8px">ဒီ Code ကို တစ်ဖက်ဖုန်းကို ပြောပြပါ (Code သက်တမ်း ၁၀ မိနစ်)</p>
+      <div class="bigcode" id="hostCode">------</div>
+      <p class="small" style="text-align:center" id="hostWait">⏳ တစ်ဖက်ဖုန်း Code ရိုက်ထည့်တာကို စောင့်နေသည်…</p>
+    </div>
+    <p class="small" style="margin:12px 0 6px">② လက်ခံမယ့်ဖုန်း — Code ရိုက်ထည့်ပါ</p>
+    <div class="row">
+      <input type="text" id="joinCode" inputmode="numeric" maxlength="6" placeholder="123456" style="font-size:20px;text-align:center;letter-spacing:6px;margin:0">
+      <button class="green" id="btnJoin">ချိတ်မည်</button>
+    </div>
+  </div>
+</div>
+
+<div class="card">
+  <h2>📁 ပို့ရန် ဖိုင်ရွေးပါ</h2>
+  <div class="grid">
+    <div class="pick" data-kind="photo"><b>🖼️</b>Photos<span id="cPhoto">0 ခု</span></div>
+    <div class="pick" data-kind="video"><b>🎬</b>Videos<span id="cVideo">0 ခု</span></div>
+    <div class="pick" data-kind="contact"><b>👤</b>Contacts (.vcf)<span id="cContact">0 ခု</span></div>
+    <div class="pick" data-kind="file"><b>📁</b>Files<span id="cFile">0 ခု</span></div>
+  </div>
+  <input type="file" id="filePhoto" accept="image/*" multiple class="hide">
+  <input type="file" id="fileVideo" accept="video/*" multiple class="hide">
+  <input type="file" id="fileContact" accept=".vcf,text/vcard,text/x-vcard" multiple class="hide">
+  <input type="file" id="fileAny" multiple class="hide">
+  <div id="queueBox" style="margin-top:10px"></div>
+  <button class="primary" id="btnSend" disabled style="margin-top:6px">🚀 ပို့မည်</button>
+  <p class="small" style="margin-top:8px">📵 ပို့နေစဉ် ဖုန်းမျက်နှာပြင်ကို မပိတ်ပါနဲ့၊ တခြား app ကို မပြောင်းပါနဲ့။ (နှစ်ဖက်စလုံး) — ပို့နေစဉ် Screen Wake Lock အလိုအလျောက် ဖွင့်ပေးပါမည်။</p>
+</div>
+
+<div class="card">
+  <h2>📥 လက်ခံရရှိသော ဖိုင်များ</h2>
+  <label class="chk"><input type="checkbox" id="autoSave" checked><span>⚡ ဖိုင်ရောက်လျှင် အလိုအလျောက်သိမ်းမည် (Android/PC — iPhone မှာ ဖိုင်နာမည်ကို နှိပ်ပြီး Save လုပ်ပါ)</span></label>
+  <div id="recvBox"><p class="small">တစ်ဖက်ဖုန်းမှ ပို့လိုက်သော ဖိုင်များ ဤနေရာတွင် ပေါ်လာပါမည်။</p></div>
+</div>
+
+<details class="card">
+  <summary>⚙️ အဆင့်မြင့် Settings (Server / TURN)</summary>
+  <p class="small" style="margin:8px 0">ကိုယ်ပိုင် Signaling Server လိပ်စာ (Apps Script Web App URL <i>သို့မဟုတ်</i> Cloudflare Worker URL) — Code နည်းအတွက် လိုပါသည်။</p>
+  <input type="text" id="cfgSignal" placeholder="https://script.google.com/macros/s/…/exec  သို့မဟုတ်  https://tanpoe-signal.….workers.dev">
+  <p class="small" style="margin:8px 0">Network မတူရင် (ဥပမာ တစ်လုံး Wi‑Fi, တစ်လုံး Data) ဖိုင် ဖြတ်သန်းဖို့ Relay (TURN) လိုနိုင်သည်။ အခမဲ့ 20GB/လ — <b>metered.ca/tools/openrelay</b> မှာ Sign up → TURN credentials API link ကို ဒီမှာ Paste ပါ။</p>
+  <input type="text" id="cfgTurn" placeholder="Metered TURN API link (မရှိရင် အလွတ်ထားပါ)">
+  <label class="chk"><input type="checkbox" id="cfgRelayFallback"><span>အခမဲ့ OpenRelay demo relay ကို အရန်သုံးမည် (နှေးနိုင်/မမြဲနိုင်ပါ — ကိုယ်ပိုင် Metered link က ပိုကောင်းသည်)</span></label>
+  <button class="primary" id="btnSaveCfg">💾 သိမ်းမည်</button>
+  <p class="small" id="cfgMsg" style="margin-top:6px"></p>
+</details>
+
+<div class="card">
+  <h2>📝 မှတ်တမ်း</h2>
+  <div class="log" id="logBox">အဆင်သင့်။</div>
+</div>
+
+<p class="small" style="text-align:center;padding-bottom:16px">ကိုယ်ပိုင်ပို့ v1.0 — ချောစုအတွက် Amani ဆောက်ပေးထားသည်။ ဖိုင်များသည် Server ထဲ လုံးဝ မဝင်ပါ (Peer‑to‑Peer တိုက်ရိုက်)။</p>
+
+<script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js"></script>
+<script>
+"use strict";
+/* ============ helpers ============ */
+const $=id=>document.getElementById(id);
+const logBox=$("logBox");
+function log(m){logBox.textContent+="\n"+m;logBox.scrollTop=logBox.scrollHeight;}
+function fmtSize(n){if(n<1024)return n+" B";if(n<1048576)return (n/1024).toFixed(1)+" KB";if(n<1073741824)return (n/1048576).toFixed(1)+" MB";return (n/1073741824).toFixed(2)+" GB";}
+function setStatus(mode,txt){$("dot").className="dot"+(mode?" "+mode:"");$("statusTxt").textContent=txt;}
+function b64encode(str){return btoa(unescape(encodeURIComponent(str)));}
+function b64decode(b64){return decodeURIComponent(escape(atob(b64.trim())));}
+
+/* ============ config ============ */
+const cfg={
+  get signal(){return localStorage.getItem("tp_signal")||"";},
+  get turn(){return localStorage.getItem("tp_turn")||"";},
+  get relay(){return localStorage.getItem("tp_relay")==="1";}
+};
+$("cfgSignal").value=cfg.signal; $("cfgTurn").value=cfg.turn; $("cfgRelayFallback").checked=cfg.relay;
+$("btnSaveCfg").onclick=()=>{localStorage.setItem("tp_signal",$("cfgSignal").value.trim());localStorage.setItem("tp_turn",$("cfgTurn").value.trim());localStorage.setItem("tp_relay",$("cfgRelayFallback").checked?"1":"0");$("cfgMsg").textContent="✅ သိမ်းပြီးပါပြီ။";updateCodeWarn();log("Settings သိမ်းပြီး");};
+function updateCodeWarn(){$("codeCfgWarn").textContent=cfg.signal?"":"⚠️ Code နည်းသုံးရန် အထက်ပါ Settings မှာ ကိုယ်ပိုင် Signaling Server လိပ်စာ အရင်ထည့်ပါ။ (QR နည်းကတော့ Server မလိုဘဲ တန်းသုံးလို့ ရသည်)";}
+updateCodeWarn();
+
+let turnServersCache=null;
+async function getIceServers(localOnly){
+  if(localOnly) return [];
+  const ice=[{urls:"stun:stun.l.google.com:19302"},{urls:"stun:stun.cloudflare.com:3478"}];
+  if(cfg.relay) ice.push({urls:"turn:openrelay.metered.ca:80",username:"openrelayproject",credential:"openrelayproject"},{urls:"turn:openrelay.metered.ca:443",username:"openrelayproject",credential:"openrelayproject"});
+  if(cfg.turn){
+    try{
+      if(!turnServersCache){const r=await fetch(cfg.turn);const j=await r.json();if(Array.isArray(j))turnServersCache=j;}
+      if(turnServersCache) ice.push(...turnServersCache);
+    }catch(e){log("TURN link ဖတ်မရပါ: "+e.message);}
+  }
+  return ice;
+}
+
+/* ============ WebRTC core ============ */
+let pc=null, dc=null, connected=false;
+const CHUNK=32*1024;
+function waitIceComplete(pc,timeoutMs){
+  return new Promise(res=>{
+    if(pc.iceGatheringState==="complete")return res();
+    const to=setTimeout(()=>res(),timeoutMs||6000);
+    pc.addEventListener("icegatheringstatechange",()=>{if(pc.iceGatheringState==="complete"){clearTimeout(to);res();}});
+  });
+}
+function newPC(iceServers){
+  const p=new RTCPeerConnection({iceServers});
+  p.onconnectionstatechange=()=>{
+    log("Connection: "+p.connectionState);
+    if(p.connectionState==="connected"){/* dc handler sets status */}
+    if(p.connectionState==="disconnected"||p.connectionState==="failed"||p.connectionState==="closed"){connected=false;setStatus("","🔴 ချိတ်ဆက်မှု ပြတ်သွားပါပြီ");$("btnSend").disabled=true;}
+  };
+  return p;
+}
+function bindChannel(ch){
+  dc=ch; dc.binaryType="arraybuffer"; dc.bufferedAmountLowThreshold=256*1024;
+  dc.onopen=()=>{connected=true;setStatus("on","🟢 ချိတ်ဆက်ပြီးပါပြီ — ဖိုင်ပို့လို့ ရပါပြီ");log("✅ DataChannel ပွင့်ပါပြီ");refreshSendBtn();};
+  dc.onclose=()=>{connected=false;setStatus("","🔴 ချိတ်ဆက်မှု ပိတ်သွားပါပြီ");$("btnSend").disabled=true;};
+  dc.onmessage=onMessage;
+}
+async function makeOffer(localOnly){
+  pc=newPC(await getIceServers(localOnly));
+  bindChannel(pc.createDataChannel("files"));
+  const offer=await pc.createOffer(); await pc.setLocalDescription(offer);
+  await waitIceComplete(pc, localOnly?3500:6000);
+  return b64encode(JSON.stringify(pc.localDescription));
+}
+async function acceptOffer(offerB64, localOnly){
+  pc=newPC(await getIceServers(localOnly));
+  pc.ondatachannel=e=>bindChannel(e.channel);
+  await pc.setRemoteDescription(JSON.parse(b64decode(offerB64)));
+  const ans=await pc.createAnswer(); await pc.setLocalDescription(ans);
+  await waitIceComplete(pc, localOnly?3500:6000);
+  return b64encode(JSON.stringify(pc.localDescription));
+}
+async function applyAnswer(ansB64){
+  await pc.setRemoteDescription(JSON.parse(b64decode(ansB64)));
+  log("Answer ထည့်ပြီး — ချိတ်ဆက်နေသည်…");
+}
+
+/* ============ QR helpers ============ */
+function drawQR(el, text){
+  el.innerHTML="";
+  try{
+    const qr=qrcode(0,"L"); qr.addData(text,"Byte"); qr.make();
+    el.innerHTML=qr.createSvgTag({cellSize:3,margin:8,scalable:true});
+    el.querySelector("svg").style.width="100%";
+  }catch(e){ el.innerHTML="<p class='small' style='color:#333;padding:10px'>QR ကြီးလွန်းလို့ မပြနိုင်ပါ — စာသား Copy နည်းကို သုံးပါ။</p>"; }
+}
+let camStream=null, camTarget=null, scanRAF=null;
+async function startScan(targetInput){
+  camTarget=targetInput;
+  try{
+    camStream=await navigator.mediaDevices.getUserMedia({video:{facingMode:"environment"}});
+  }catch(e){alert("Camera ဖွင့်မရပါ။ HTTPS link ကနေ ဖွင့်ထားတာ သေချာပါစေ။\n"+e.message);return;}
+  const v=$("cam"); v.srcObject=camStream; v.style.display="block"; $("btnStopCam").classList.remove("hide");
+  await v.play();
+  const canvas=document.createElement("canvas"); const ctx=canvas.getContext("2d",{willReadFrequently:true});
+  const tick=()=>{
+    if(!camStream)return;
+    if(v.readyState===v.HAVE_ENOUGH_DATA){
+      canvas.width=v.videoWidth; canvas.height=v.videoHeight;
+      ctx.drawImage(v,0,0,canvas.width,canvas.height);
+      const img=ctx.getImageData(0,0,canvas.width,canvas.height);
+      const code=jsQR(img.data,img.width,img.height);
+      if(code&&code.data){ stopScan(); camTarget(code.data); return; }
+    }
+    scanRAF=requestAnimationFrame(tick);
+  };
+  tick();
+}
+function stopScan(){
+  if(scanRAF)cancelAnimationFrame(scanRAF);
+  if(camStream){camStream.getTracks().forEach(t=>t.stop());camStream=null;}
+  $("cam").style.display="none"; $("btnStopCam").classList.add("hide");
+}
+$("btnStopCam").onclick=stopScan;
+
+/* ============ tabs ============ */
+$("tabQr").onclick=()=>{$("tabQr").classList.add("sel");$("tabCode").classList.remove("sel");$("paneQr").classList.remove("hide");$("paneCode").classList.add("hide");};
+$("tabCode").onclick=()=>{$("tabCode").classList.add("sel");$("tabQr").classList.remove("sel");$("paneCode").classList.remove("hide");$("paneQr").classList.add("hide");};
+
+/* ============ QR mode ============ */
+$("btnQrHost").onclick=async()=>{
+  setStatus("busy","🟡 Offer ထုတ်နေသည်…");
+  const offer=await makeOffer(true);
+  $("qrHostBox").classList.remove("hide"); $("qrGuestBox").classList.add("hide");
+  $("offerText").value=offer; drawQR($("qrBox"),offer);
+  setStatus("busy","🟡 Offer အဆင်သင့် — တစ်ဖက်ဖုန်း Scan ဖတ်ပြီး Answer ပြန်ပေးတာကို စောင့်ပါ");
+  log("QR Offer ထုတ်ပြီး (Local network သာ)");
+};
+$("btnCopyOffer").onclick=()=>{$("offerText").select();navigator.clipboard&&navigator.clipboard.writeText($("offerText").value);log("Offer Copy ကူးပြီး");};
+$("btnQrGuest").onclick=()=>{$("qrGuestBox").classList.remove("hide");$("qrHostBox").classList.add("hide");};
+async function guestFromOffer(offerB64){
+  try{
+    setStatus("busy","🟡 Answer ထုတ်နေသည်…");
+    const ans=await acceptOffer(offerB64,true);
+    $("guestAnswerBox").classList.remove("hide");
+    $("guestAnswerText").value=ans; drawQR($("qrBox2"),ans);
+    setStatus("busy","🟡 Answer အဆင်သင့် — ပို့မယ့်ဖုန်းမှာ ထည့်ခိုင်းပါ။ ထည့်ပြီးရင် ချိတ်ပါလိမ့်မယ်");
+    log("QR Answer ထုတ်ပြီး");
+  }catch(e){alert("Offer မမှန်ပါ / ဖတ်မရပါ: "+e.message);}
+}
+$("btnScanOffer").onclick=()=>startScan(t=>{ $("offerInText").value=t; guestFromOffer(t); });
+$("btnUseOfferText").onclick=()=>{const t=$("offerInText").value.trim(); if(t)guestFromOffer(t);};
+$("btnScanAnswer").onclick=()=>startScan(t=>{ $("answerText").value=t; });
+$("btnCopyAnswer").onclick=()=>{$("guestAnswerText").select();navigator.clipboard&&navigator.clipboard.writeText($("guestAnswerText").value);log("Answer Copy ကူးပြီး");};
+$("btnApplyAnswer").onclick=async()=>{const t=$("answerText").value.trim(); if(!t)return alert("Answer စာသား အရင် Paste လုပ်ပါ"); try{await applyAnswer(t); setStatus("busy","🟡 ချိတ်ဆက်နေသည်…");}catch(e){alert("Answer မမှန်ပါ: "+e.message);}};
+
+/* ============ Code mode (own signaling server, polling API) ============ */
+async function sigPost(body){
+  const r=await fetch(cfg.signal,{method:"POST",headers:{"Content-Type":"text/plain;charset=utf-8"},body:JSON.stringify(body)});
+  return r.json();
+}
+async function sigGet(params){
+  const qs=new URLSearchParams(params).toString();
+  const r=await fetch(cfg.signal+(cfg.signal.includes("?")?"&":"?")+qs);
+  return r.json();
+}
+function pollAnswer(code){
+  let tries=0;
+  const iv=setInterval(async()=>{
+    tries++;
+    try{
+      const j=await sigGet({action:"getAnswer",code});
+      if(j&&j.ok&&j.answer){clearInterval(iv);await applyAnswer(j.answer);setStatus("busy","🟡 ချိတ်ဆက်နေသည်…");$("hostWait").textContent="✅ Answer ရပြီ — ချိတ်ဆက်နေသည်…";}
+      else if(tries>150){clearInterval(iv);$("hostWait").textContent="⏰ အချိန်ကုန်သွားပါပြီ (၁၀ မိနစ်) — Code အသစ် ပြန်ထုတ်ပါ။";}
+    }catch(e){/* keep polling */}
+  },2000);
+}
+$("btnCodeHost").onclick=async()=>{
+  if(!cfg.signal)return alert("Settings မှာ ကိုယ်ပိုင် Signaling Server လိပ်စာ အရင် ထည့်သိမ်းပါ။");
+  try{
+    setStatus("busy","🟡 Code ထုတ်နေသည်…");
+    const offer=await makeOffer(false);
+    const j=await sigPost({action:"create",offer});
+    if(!j.ok)throw new Error(j.error||"Server က Code မပေးပါ");
+    $("hostCodeBox").classList.remove("hide");
+    $("hostCode").textContent=j.code;
+    $("hostWait").textContent="⏳ တစ်ဖက်ဖုန်း Code ရိုက်ထည့်တာကို စောင့်နေသည်…";
+    setStatus("busy","🟡 Code အဆင်သင့် — စောင့်နေသည်");
+    log("Code ထုတ်ပြီး: "+j.code);
+    pollAnswer(j.code);
+  }catch(e){alert("Code ထုတ်မရပါ: "+e.message+"\nServer URL မှန်ရဲ့လား စစ်ပါ။");setStatus("","🔴 Code ထုတ်တာ မအောင်မြင်ပါ");}
+};
+$("btnJoin").onclick=async()=>{
+  if(!cfg.signal)return alert("Settings မှာ ကိုယ်ပိုင် Signaling Server လိပ်စာ အရင် ထည့်သိမ်းပါ။");
+  const code=$("joinCode").value.trim();
+  if(code.length!==6)return alert("Code ၆ လုံး ရိုက်ထည့်ပါ");
+  try{
+    setStatus("busy","🟡 Offer ယူနေသည်…");
+    const j=await sigGet({action:"getOffer",code});
+    if(!j.ok||!j.offer)throw new Error((j&&j.error)||"Code မတွေ့ပါ / သက်တမ်းကုန်သွားပါပြီ");
+    const ans=await acceptOffer(j.offer,false);
+    const j2=await sigPost({action:"answer",code,answer:ans});
+    if(!j2.ok)throw new Error(j2.error||"Answer ပို့မရပါ");
+    setStatus("busy","🟡 Answer ပို့ပြီး — ချိတ်ဆက်နေသည်…");
+    log("Code နဲ့ ချိတ်ဆက်နေသည်: "+code);
+  }catch(e){alert("ချိတ်မရပါ: "+e.message);setStatus("","🔴 ချိတ်တာ မအောင်မြင်ပါ");}
+};
+
+/* ============ file queue & sending ============ */
+const queue=[]; /* {file, kind, el, sent} */
+const kindCount={photo:0,video:0,contact:0,file:0};
+function classify(f,kindHint){
+  if(kindHint)return kindHint;
+  if(f.type.startsWith("image/"))return "photo";
+  if(f.type.startsWith("video/"))return "video";
+  if(/\.vcf$/i.test(f.name)||f.type.includes("vcard"))return "contact";
+  return "file";
+}
+function addFiles(fileList,kindHint){
+  for(const f of fileList){
+    const kind=classify(f,kindHint); kindCount[kind]++;
+    const el=document.createElement("div"); el.className="fitem";
+    el.innerHTML="<div class='nm'>"+(kind==="photo"?"🖼️":kind==="video"?"🎬":kind==="contact"?"👤":"📁")+" <span></span></div><div class='small'></div><div class='bar send'><i></i></div>";
+    el.querySelector(".nm span").textContent=f.name;
+    el.querySelector(".small").textContent=fmtSize(f.size)+" — ပို့ရန် အသင့်ရှိ";
+    $("queueBox").appendChild(el);
+    queue.push({file:f,kind,el,sent:false});
+  }
+  $("cPhoto").textContent=kindCount.photo+" ခု"; $("cVideo").textContent=kindCount.video+" ခု";
+  $("cContact").textContent=kindCount.contact+" ခု"; $("cFile").textContent=kindCount.file+" ခု";
+  refreshSendBtn();
+}
+function refreshSendBtn(){$("btnSend").disabled=!(connected&&queue.some(q=>!q.sent));}
+document.querySelectorAll(".pick").forEach(p=>{p.onclick=()=>{const k=p.dataset.kind; $(k==="photo"?"filePhoto":k==="video"?"fileVideo":k==="contact"?"fileContact":"fileAny").click();};});
+$("filePhoto").onchange=e=>{addFiles(e.target.files,"photo");e.target.value="";};
+$("fileVideo").onchange=e=>{addFiles(e.target.files,"video");e.target.value="";};
+$("fileContact").onchange=e=>{addFiles(e.target.files,"contact");e.target.value="";};
+$("fileAny").onchange=e=>{addFiles(e.target.files,null);e.target.value="";};
+
+let wakeLock=null;
+async function keepAwake(on){
+  try{
+    if(on&&navigator.wakeLock){wakeLock=await navigator.wakeLock.request("screen");}
+    else if(wakeLock){await wakeLock.release();wakeLock=null;}
+  }catch(e){/* not supported */}
+}
+function waitDrain(){
+  return new Promise(res=>{
+    if(dc.bufferedAmount<=256*1024)return res();
+    const h=()=>{dc.removeEventListener("bufferedamountlow",h);res();};
+    dc.addEventListener("bufferedamountlow",h);
+  });
+}
+$("btnSend").onclick=async()=>{
+  if(!connected||!dc||dc.readyState!=="open")return alert("အရင် ချိတ်ဆက်ပါ");
+  $("btnSend").disabled=true; await keepAwake(true);
+  for(const item of queue){
+    if(item.sent)continue;
+    const f=item.file, bar=item.el.querySelector(".bar i"), st=item.el.querySelector(".small");
+    try{
+      dc.send(JSON.stringify({t:"begin",name:f.name,size:f.size,type:f.type||"application/octet-stream"}));
+      let off=0;
+      while(off<f.size){
+        const buf=await f.slice(off,off+CHUNK).arrayBuffer();
+        dc.send(buf); off+=buf.byteLength;
+        bar.style.width=Math.round(off/f.size*100)+"%";
+        st.textContent=fmtSize(off)+" / "+fmtSize(f.size)+" ပို့နေသည်…";
+        if(dc.bufferedAmount>1024*1024)await waitDrain();
+      }
+      if(f.size===0){dc.send(new ArrayBuffer(0));}
+      item.sent=true; st.textContent="✅ ပို့ပြီး — "+fmtSize(f.size);
+      log("ပို့ပြီး: "+f.name+" ("+fmtSize(f.size)+")");
+    }catch(e){ st.textContent="❌ ပို့မရပါ: "+e.message; log("ပို့စဉ် ပြဿနာ: "+e.message); }
+  }
+  await keepAwake(false); refreshSendBtn();
+};
+
+/* ============ receiving ============ */
+let rx=null; /* {name,size,type,parts,got,el,bar,st} */
+function onMessage(e){
+  if(typeof e.data==="string"){
+    let m; try{m=JSON.parse(e.data);}catch(_){return;}
+    if(m.t==="begin"){
+      const el=document.createElement("div"); el.className="fitem";
+      el.innerHTML="<div class='nm'>📄 <span></span></div><div class='small'></div><div class='bar'><i></i></div><div class='dlbox' style='margin-top:5px'></div>";
+      el.querySelector(".nm span").textContent=m.name;
+      el.querySelector(".small").textContent="လက်ခံနေသည်… 0 / "+fmtSize(m.size);
+      if($("recvBox").querySelector("p"))$("recvBox").innerHTML="";
+      $("recvBox").prepend(el);
+      rx={name:m.name,size:m.size,type:m.type,parts:[],got:0,el,bar:el.querySelector(".bar i"),st:el.querySelector(".small")};
+      if(m.size===0)finishRx();
+    }
+    return;
+  }
+  if(!rx)return;
+  rx.parts.push(e.data); rx.got+=e.data.byteLength;
+  rx.bar.style.width=(rx.size?Math.round(rx.got/rx.size*100):100)+"%";
+  rx.st.textContent="လက်ခံနေသည်… "+fmtSize(rx.got)+" / "+fmtSize(rx.size);
+  if(rx.got>=rx.size)finishRx();
+}
+function finishRx(){
+  const blob=new Blob(rx.parts,{type:rx.type});
+  const url=URL.createObjectURL(blob);
+  rx.st.textContent="✅ ရပါပြီ — "+fmtSize(rx.size);
+  rx.bar.style.width="100%";
+  const a=document.createElement("a"); a.href=url; a.download=rx.name; a.className="dl"; a.textContent="⬇️ "+rx.name+" သိမ်းမည်";
+  rx.el.querySelector(".dlbox").appendChild(a);
+  log("လက်ခံရရှိ: "+rx.name+" ("+fmtSize(rx.size)+")");
+  if($("autoSave").checked){a.click();}
+  rx=null;
+}
+</script>
+</body>
+</html>
